@@ -1,3 +1,39 @@
+FFmpeg-WHIP-WHEP
+================
+This is a fork of the [FFmpeg](https://ffmpeg.org) project that adds support for the [WHIP](https://datatracker.ietf.org/doc/html/rfc9725) (WebRTC-HTTP ingestion protocol) and [WHEP](https://datatracker.ietf.org/doc/html/draft-ietf-wish-whep-02) (WebRTC-HTTP Egress Protocol) using [libdatachannel](https://github.com/paullouisageneau/libdatachannel).
+
+## Supported Codecs
+
+WHIP
+> Default: H264 / OPUS
+- Video: H264 / H265 / AV1
+- Audio: OPUS / PCMA / PCMU / G722
+
+WHEP
+- Video: H264 / H265 / AV1 / VP8 / VP9
+- Audio: OPUS / PCMA / PCMU / G722
+
+## Usage
+
+WHIP
+```bash
+ffmpeg -re -i input.mp4 -f whip -token <token> <whip_url>
+```
+
+WHEP
+```bash
+ffplay -f whep -token <token> <whep_url>
+```
+
+## Building
+
+1. Build **libdatachannel** by following the instructions in its [BUILDING.md](https://github.com/paullouisageneau/libdatachannel/blob/master/BUILDING.md).
+
+2. Install **libdatachannel** to the system directory using `make install`.
+
+3. Clone this repository and build it following the [FFmpeg Compilation Guide](https://trac.ffmpeg.org/wiki/CompilationGuide).
+Be sure to add `--enable-libdatachannel` when running the `./configure` script.
+
 FFmpeg README
 =============
 

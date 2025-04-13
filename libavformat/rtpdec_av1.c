@@ -53,6 +53,7 @@ struct PayloadContext {
     unsigned int frag_pkt_leb_pos;  ///< offset in buffer where OBU LEB starts
     unsigned int frag_lebs_res;     ///< number of bytes reserved for LEB
     unsigned int frag_header_size;  ///< size of OBU header (1 or 2)
+    int expect_frag_cont;           ///< expect fragment continuation in packet
     int needs_td;                   ///< indicates that a TD should be output
     int drop_fragment;              ///< drop all fragments until next frame
     int keyframe_seen;              ///< keyframe was seen
@@ -165,7 +166,7 @@ static int av1_handle_packet(AVFormatContext *ctx, PayloadContext *data,
                    seq, expected_seq);
             goto drop_fragment;
         }
-        if (!pkt->size || !data->frag_obu_size) {
+        if (!pkt->size || !data->expect_frag_cont) {
             av_log(ctx, AV_LOG_WARNING, "Unexpected fragment continuation in AV1 RTP packet\n");
             goto drop_fragment; // avoid repeated output for the same fragment
         }
@@ -187,9 +188,11 @@ static int av1_handle_packet(AVFormatContext *ctx, PayloadContext *data,
             av_log(ctx, AV_LOG_TRACE, "Timestamp changed to %u (or first pkt %d), forcing TD\n", *timestamp, is_first_pkt);
             data->needs_td = 1;
             data->frag_obu_size = 0; // new temporal unit might have been caused by dropped packets
+            data->expect_frag_cont = 0;
         }
-        if (data->frag_obu_size) {
+        if (data->expect_frag_cont) {
             data->frag_obu_size = 0; // make sure we recover
+            data->expect_frag_cont = 0;
             av_log(ctx, AV_LOG_ERROR, "Missing fragment continuation in AV1 RTP packet\n");
             return AVERROR_INVALIDDATA;
         }
@@ -362,6 +365,7 @@ static int av1_handle_packet(AVFormatContext *ctx, PayloadContext *data,
             write_leb(lebptr, final_obu_size);
 
             data->frag_obu_size = 0; // signal end of fragment
+            data->expect_frag_cont = 0;
         } else if (is_last_fragmented && !rem_pkt_size) {
             // add to total OBU size, so we can fix that in OBU header
             // (but only if the OBU size was missing!)
@@ -370,6 +374,7 @@ static int av1_handle_packet(AVFormatContext *ctx, PayloadContext *data,
             }
             // fragment not yet finished!
             result = -1;
+            data->expect_frag_cont = 1;
         }
         is_frag_cont = 0;
 
@@ -391,6 +396,7 @@ static int av1_handle_packet(AVFormatContext *ctx, PayloadContext *data,
     if (!is_last_fragmented) {
         data->frag_obu_size = 0;
         data->frag_pkt_leb_pos = 0;
+        data->expect_frag_cont = 0;
     }
 
 #ifdef RTPDEC_AV1_VERBOSE_TRACE
@@ -409,6 +415,7 @@ drop_fragment:
     data->keyframe_seen = 0;
     data->drop_fragment = 1;
     data->frag_obu_size = 0;
+    data->expect_frag_cont = 0;
     data->needs_td = 1;
     if (pkt->size) {
         av_log(ctx, AV_LOG_TRACE, "Dumping current AV1 frame packet\n");
