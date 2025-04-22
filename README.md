@@ -15,14 +15,38 @@ WHEP
 
 ## Usage
 
-WHIP
+### WHIP
+
+Docker
+```bash
+docker run --rm -it -v $(pwd):/app \
+    parallelcc/ffmpeg-whip-whep:7.1.1 \
+    -re -i /app/input.mp4 -f whip -token <token> <whip_url>
+```
+
+Local build
 ```bash
 ffmpeg -re -i input.mp4 -f whip -token <token> <whip_url>
 ```
 
-WHEP
+### WHEP
+
+Docker
 ```bash
+docker run --rm -it -v $(pwd):/app \
+    parallelcc/ffmpeg-whip-whep:7.1.1 \
+    -f whep -token <token> -i <whep_url> \
+    -c:v libx264 -c:a aac /app/output.mp4
+```
+
+Local build
+```bash
+# play
 ffplay -f whep -token <token> <whep_url>
+
+# record
+ffmpeg -f whep -token <token> -i <whep_url> \
+    -c:v libx264 -c:a aac output.mp4
 ```
 
 ## Building
